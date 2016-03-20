@@ -1,0 +1,462 @@
+// ConsoleApplication1.cpp : Defines the entry point for the console application.
+//
+
+#include "stdafx.h"
+#include <cv.h>
+#include <highgui.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <imgproc.hpp>
+
+#include <opencv2/opencv.hpp>
+#include <opencv2/objdetect/objdetect.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+
+#include <iostream>
+#include <string>
+#include <windows.h>
+
+#include <vector>
+
+using namespace cv;
+using namespace std;
+
+void get_input(short* ishow_screen, short* index_camera, short* iexit, short* x_crop, short* width, short* y_crop, short* height);
+
+int sum(cv::Mat image, short pix_thresh, short sum_step)
+{
+	int sum(0);
+	for (int y(0); y < image.rows; y += sum_step)
+	{
+
+		for (int x(0); x < 3*image.cols; x += sum_step)
+		{
+			int tmp = image.at<unsigned char>(y, x);
+			if (tmp < pix_thresh)
+			{
+				sum += tmp;
+				image.at<unsigned char>(y, x) = 255;
+			}
+		}
+ 	}
+	cout << sum << endl;
+	return sum;
+}
+
+int _tmain(int argc, _TCHAR* argv[])
+{
+	string img_name = "./img/2.png";
+
+	short index_camera = 0;
+	short index_camera_default = 0;
+	short ishow_screen = 3;
+	short iexit = 0;
+	short time_shut_min = 3;
+	short pix_thresh = 120;
+	short multy = 5;
+	short sum_step = 4;
+	short blog = 1;
+	short exposure = -7;
+
+	short x_crop = 210,
+		width = 208,
+		y_crop = 126,
+		height = 200;
+
+	printf(" Controls: \n   s/o                = shut/open \n   c                  = camera \n   up/down/left/right = center crop \n   num 4/8/6/2        = width/heght \n   z                  = console \n   num 7/9            = threshold -/+ \n   num 1/3            = delay -/+ \n   ESC                = Adios! \n");
+	printf("   q/w                = sum_step +/- \n   l                  = logs on/off \n   [/]                = exposure -/+\n\n");
+
+	cv::VideoCapture stream1(index_camera); //CV_CAP_ANY);   //0 is the id of video device.0 if you have only one camera.
+
+	if (!stream1.isOpened())  //check if video device has been initialised
+	{
+		while (!stream1.isOpened())
+		{
+			printf("cannot open camera");
+			get_input(&ishow_screen, &index_camera, &iexit, &x_crop, &width, &y_crop, &height);
+			stream1 = cv::VideoCapture(index_camera);
+		}
+	}
+
+	//stream1.set(CV_CAP_PROP_FRAME_HEIGHT,600); //does'nt work
+	cout << "camera : " << index_camera << endl;
+	cout << "current resolution :" << stream1.get(CV_CAP_PROP_FRAME_WIDTH) << "x" << stream1.get(CV_CAP_PROP_FRAME_HEIGHT) << endl;
+
+	cout << "FPS: " << stream1.get(CV_CAP_PROP_FPS) << ";  AUTO_EXPOSURE: " << stream1.get(CV_CAP_PROP_AUTO_EXPOSURE) << ";  EXP: " << stream1.get(CV_CAP_PROP_EXPOSURE) << endl;
+	stream1.set(CV_CAP_PROP_AUTO_EXPOSURE, 21);
+	//stream1.set(CV_CAP_PROP_FRAME_WIDTH, 1024);
+	//^stream1.set(CV_CAP_PROP_FRAME_HEIGHT, 768);
+	//stream1.set(CV_CAP_PROP_BRIGHTNESS, );
+	//stream1.set(5, 20);
+	stream1.set(CV_CAP_PROP_CONVERT_RGB, false);
+	stream1.set(CV_CAP_PROP_FPS, 60);
+	//stream1.set(CV_CAP_PROP_BRIGHTNESS, 0);
+	//getchar();
+
+	int frame_no = 0;
+	double fps = -1;
+
+	int k = 0;
+	int summa = 0;
+	int sum_shut = 0;
+	int sum_open = 0;
+	int sum_mem[60] = { 0 };
+	int sumaver = 0;
+	int sumaver_last = 0;
+	double sumrms = 0;
+	double sumrms_last = 0;
+	short s_index = 0;
+	short time_shut = 0;
+
+	bool bSuccess = false;
+	Mat frame;
+
+	Rect myROI(x_crop, y_crop, width, height);
+
+	while (1)
+	{
+		if (index_camera != index_camera_default)
+		{
+			cout << "IC" << index_camera << endl;
+			stream1 = cv::VideoCapture(index_camera);
+			index_camera_default = index_camera;
+		}
+
+		if (!stream1.isOpened())  //check if video device has been initialised
+		{
+			while (!stream1.isOpened())
+			{
+				printf("cannot open camera");
+				get_input(&ishow_screen, &index_camera, &iexit, &x_crop, &width, &y_crop, &height);
+				stream1 = cv::VideoCapture(index_camera);
+			}
+		}
+
+		stream1.set(CV_CAP_PROP_EXPOSURE, exposure);
+		//image = imread(img_name, CV_LOAD_IMAGE_COLOR);
+		bSuccess = stream1.read(frame);
+		//frame = imread(img_name, CV_LOAD_IMAGE_COLOR);
+
+		if ( k != -1 ) cout << k << endl;
+
+		summa = sum(frame(myROI), pix_thresh, sum_step);
+
+		sum_mem[s_index] = summa;
+		s_index++;
+		if (s_index == 60)
+			s_index = 0;
+
+		if (s_index == 0 || s_index == 20 || s_index == 40 || s_index == 60)
+		{
+			for (short k = 0; k < 60; k++)
+			{
+				if (fabs((double)sum_mem[k] - sumaver_last) < 4 * sumrms || fabs((double)sum_mem[k] - sumaver_last) > 10 * sumrms)
+				{
+					sumaver += sum_mem[k];
+				}
+				else
+				{
+					sumaver += sumaver_last + (sum_mem[k] - sumaver_last) / 10;
+				}
+			}
+
+			sumaver = sumaver / 60;
+			sumaver_last = sumaver;
+
+			for (short k = 0; k < 60; k++)
+			{
+				if (fabs((double)sum_mem[k] - sumaver_last) < 4 * sumrms_last)
+				{
+						sumrms += (sum_mem[k] - sumaver)*(sum_mem[k] - sumaver);
+				}
+				else
+				{
+					sumrms += (sum_mem[k] - sumaver)*(sum_mem[k] - sumaver)/16;
+					//cout << "srms = " << sum_mem[k] << " - " << sumaver  << " = " << (sum_mem[k] - sumaver) << endl;
+				}
+			}
+			
+			sumrms = sqrt(fabs(sumrms / 60));
+			sumrms_last = sumrms;
+
+			cout << sumaver << " << sumaver" << endl;
+			cout << sumrms << " << sumrms" << endl << endl;
+		}
+
+		if (fabs((double) summa - sumaver) > sumaver/2)
+			cout << "achtung!!!" << endl;
+
+		//cout << "SUM = " << sum(frame(myROI)) << endl;
+		int red_max = 256,
+			green_max = 50,
+			blue_max = 50;
+
+		int red_min = 130,
+			green_min = -1,
+			blue_min = -11;
+
+		//c_input = cvWaitKey(33);
+		k = cvWaitKey(33);
+		switch (k)
+		{
+			case 122 :
+				{
+					get_input(&ishow_screen, &index_camera, &iexit, &x_crop, &width, &y_crop, &height);//dfaef(*par, *par1);
+					myROI = Rect(x_crop, y_crop, width, height);
+					cout << "x" << x_crop << "," << width << "  y" << y_crop << "," << height << endl;
+				}
+				break;
+			case 2490368:
+				{
+					y_crop--;
+					myROI = Rect(x_crop, y_crop, width, height);
+					if (blog == 1) cout << "Y" << y_crop << endl;
+				}
+				break;
+			case 2621440:
+				{
+					y_crop++;
+					myROI = Rect(x_crop, y_crop, width, height);
+					if (blog == 1) cout << "Y" << y_crop << endl;
+				}
+				break;
+			case 2555904:
+				{
+					x_crop++; 
+					myROI = Rect(x_crop, y_crop, width, height);
+					if (blog == 1) cout << "X" << x_crop << endl;
+				}
+				break;
+			case 2424832:
+				{
+					x_crop--;
+					myROI = Rect(x_crop, y_crop, width, height);
+					if (blog == 1) cout << "X" << x_crop << endl;
+				}
+				break;
+			case 56:
+				{
+					height--;
+					myROI = Rect(x_crop, y_crop, width, height);
+					cout << "He" << height << endl;
+				}
+				break;
+			case 50:
+				{
+					height++;
+					myROI = Rect(x_crop, y_crop, width, height);
+					cout << "He" << height << endl;
+				}
+				break;
+			case 54:
+				{
+					width--;
+					myROI = Rect(x_crop, y_crop, width, height);
+					cout << "Wi" << width << endl;
+				}
+				break;
+			case 52:
+				{
+					width++;
+					myROI = Rect(x_crop, y_crop, width, height);
+					cout << "Wi" << width << endl;
+				}
+				break;
+			case 115://s
+				{
+					sum_shut = summa;
+					cout << "SHUT = " << sum_shut << endl;
+				}
+				break;
+			case 111://o
+				{
+					sum_open = summa;
+					cout << "OPEN = " << sum_open << endl;
+				}
+				break;
+			case 99://c
+				{
+						if (ishow_screen == 1)
+							ishow_screen = 2;
+						else if (ishow_screen == 2)
+							ishow_screen = 3;
+						else if (ishow_screen == 3)
+							ishow_screen = 0;
+						else ishow_screen = 1;
+				}
+				break;
+			case 55://num7
+			{
+						pix_thresh--;
+						cout << "Threshold = " << pix_thresh << endl;
+			}
+				break;
+			case 57://num9
+			{
+						pix_thresh++;
+						cout << "Threshold = " << pix_thresh << endl;
+			}
+				break;
+			case 27://ESC
+			{
+						cout << "!Hasta luego!" << endl;
+						return 0;
+			}
+				break;
+			case 49://num1
+			{
+						cout << "Time_shut_min = " << time_shut_min << endl;
+						time_shut_min--;
+			}
+				break;
+			case 51://num3
+			{
+						cout << "Time_shut_min = " << time_shut_min << endl;
+						time_shut_min++;
+			}
+				break;
+			case 108://l
+			{
+						 if (blog == 1)
+						 {
+							 blog = 0;
+							 cout << "Logs off now" << endl;
+						 }
+						 else
+						 {
+							 blog = 1;
+							 cout << "Logs off now" << endl;
+						 }
+			}
+				break;
+			case 113://q
+			{
+						if(sum_step > 1)
+							sum_step--;
+						cout << "Sum_step = " << sum_step << endl;
+			}
+				break;
+			case 119://w
+			{
+						 sum_step++;
+						 cout << "Sum_step = " << sum_step << endl;
+			}
+				break;
+			case 91://[
+			{
+						 exposure--;
+						 cout << "Exposure = " << exposure << endl;
+			}
+				break;
+			case 93://]
+			{
+						exposure++;
+						cout << "Exposure = " << exposure << endl;
+			}
+				break;
+			default:
+				break;
+		}//switch(k)
+		
+		if (abs(summa - sum_open) > multy * abs(summa - sum_shut)) // Check if eye is shut
+		{   
+			//if (blog == 1) cout <<  "Ts:" << time_shut  << "   |difffer:" << endl;
+			time_shut++;
+			if (time_shut == time_shut_min)
+			{
+				keybd_event(VK_SPACE, 0, 0, 0);
+				keybd_event(VK_SPACE, 0, KEYEVENTF_KEYUP, 0);
+				if (blog == 1) cout << " SPACE " << endl; 
+			} 
+		}
+		else time_shut = 0;
+
+		switch (ishow_screen)
+			{
+			case 1:
+			{
+					  imshow("MyVideo", frame);
+			}
+				break;
+			case 2:
+			{
+					  Mat frame_cropped = frame(myROI);
+					  imshow("MyVideo", frame_cropped);
+			}
+				break;
+			case 3:
+			{
+					  frame(myROI) += 0.3 * 255;
+					  imshow("MyVideo", frame);
+			}
+			case 0:
+			{
+					  ;
+			}
+				break;
+			default:
+			{
+					   cout << "Error:" << endl << "screen == " << ishow_screen << endl;
+			}
+				break;
+		}  //switch (ishow_screen)
+	}  //while(1)
+	return 0;
+}
+
+void get_input(short* ishow_screen, short* index_camera, short* iexit, short* x_crop, short* width, short* y_crop, short* height)
+{
+	printf("123\n");
+
+	string  c;
+	double a;
+
+	printf("| sc | ic | xc | yc | wi | he |\n Your choise is: ");
+
+	getline(cin, c);
+
+	if (c == "sc")
+	{
+		cin >> a;
+		*ishow_screen = (short)a;
+		cout << "Now screen parameter = " << *ishow_screen << endl;
+	}
+	else if (c == "xc")
+	{
+		cin >> a;
+		*x_crop = (short)a;
+		cout << "Now x_crop = " << (int)*x_crop << endl;//a << endl;
+	}
+	else if (c == "yc")
+	{
+		cin >> a;
+		*y_crop = (short)a;
+		cout << "Now y_crop = " << (int)*y_crop << endl;
+	}
+	else if (c == "wi")
+	{
+		cin >> a;
+		*width = (short)a;
+		cout << "Now width = " << (int)*width << endl;
+	}
+	else if (c == "he")
+	{
+		cin >> a;
+		*height = (short)a;
+		cout << "Now height = " << (int)*height << endl;
+	}
+	else if (c == "exit")
+	{
+		*iexit = 1;
+		cout << " !Hasta luego! " << endl;
+	}
+	else if (c == "ic")
+	{
+		cin >> a;
+		*index_camera = (short)a;
+		cout << " Index_camera = " << (int)*index_camera << endl;
+	}
+	else
+		cout << endl << "You've entered:" << c << endl;
+}

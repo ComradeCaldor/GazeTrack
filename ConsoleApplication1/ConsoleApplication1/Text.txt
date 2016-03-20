@@ -1,0 +1,125 @@
+	
+	for (int y(0); y < frame.rows; y += 1)
+	{
+		col = 0;
+
+		for (int x(0); x < 3 * frame.cols; x += 1)
+		{
+			//cout << frame.cols << endl;
+			int tmp = frame.at<unsigned char>(y, x);
+			//cout << col << ":" << tmp << endl;
+
+			//if (col == 0 || col == 1) 
+				//frame.at<unsigned char>(y, x) = 255;
+			if (col == 2 && blog == 1)
+			{
+				red = frame.at<unsigned char>(y, x);
+				green = frame.at<unsigned char>(y, x - 1);
+				blue = frame.at<unsigned char>(y, x - 2);
+
+				/*if (green > 5 && blue < coeff * green && red < coeff * green)
+					frame.at<unsigned char>(y, x - 1) = 255;
+				else if (blue > 5 && green < coeff * blue && red < coeff * blue)
+					frame.at<unsigned char>(y, x - 2) = 255;
+				else */if (red > 5 && blue < coeff * red && green < coeff * red)
+				{
+					frame.at<unsigned char>(y, x) = 255;
+					frame.at<unsigned char>(y, x - 1) = 255;
+					frame.at<unsigned char>(y, x - 2) = 255;
+				}
+				else
+				{
+					frame.at<unsigned char>(y, x) = 0;
+					frame.at<unsigned char>(y, x-1) = 0;
+					frame.at<unsigned char>(y, x-2) = 0;
+				}
+
+				if (red < red_max + accep && red > red_min - accep
+					&& blue < blue_max + accep && blue > blue_min - accep
+					&& green < green_max + accep && green > green_min - accep)
+				{
+					cout << " x" << x << " y" << y << endl;
+					cout << " r" << red << " g" << green << " b" << blue << endl;
+					cout << "h" << endl << endl;
+
+					/*
+					frame.at<unsigned char>(y, x) = 0;
+					frame.at<unsigned char>(y, x - 1) = 255;
+					frame.at<unsigned char>(y, x - 2) = 255;
+					*/
+
+					point_x[m] += x;
+					point_y[m] += y;
+					x_sum[m]++;
+					y_sum[m]++;
+
+					cout << " x:" << x << " y:" << y << endl;
+					cout << " px:" << point_x[m] << " py:" << point_y[m] << endl;
+
+					int i = 0;
+
+					if ( m > 0 )
+						while ( i < m )
+						{
+
+							//cout << fabs(point_x[m] / x_sum[m] - point_x[m - 1] / x_sum[m - 1]) << "  v  " << fabs(point_y[m] / y_sum[m] - point_y[m - 1] / y_sum[m-1]) << endl;
+							if (fabs(point_x[m] / x_sum[m] - point_x[m - 1] / x_sum[m - 1]) < 5 && fabs(point_y[m] / y_sum[m] - point_y[m - 1] / y_sum[m - 1]) < 5)
+							{
+								
+								point_x[m - 1] += point_x[m];
+								point_y[m - 1] += point_y[m];
+								x_sum[m - 1] += x_sum[m];
+								y_sum[m - 1] += y_sum[m];
+								x_sum[m] = 0;
+								y_sum[m] = 0;
+								point_x[m] = 0;
+								point_y[m] = 0;
+								i = m + 6;
+							}
+					
+							if (i == m)
+							{
+								x_sum[m] = 0;
+								y_sum[m] = 0;
+								point_x[m] = 0;
+								point_y[m] = 0;
+								m++;
+							}
+
+							i++;
+						}
+					else
+					{
+						x_sum[m] = 0;
+						y_sum[m] = 0;
+						point_x[m] = 0;
+						point_y[m] = 0;
+						m++;
+					}
+				}
+
+
+				/*if (blog == 1)
+				{
+					cout << "RGB:" << red*coeff << ":" << green*coeff << ":" << blue << endl;
+					blog = 0;
+				}*/
+			}//col = 2
+
+
+			col++;
+			if (col == 3) col = 0;
+			//cout << y << "-y" << x << "-x" << endl;
+			//cout << tmp << endl;
+
+			//Point3_<uchar>* p = frame.ptr<Point3_<uchar> >(y, x);
+			//cout << p->x << endl;
+
+			/*if (tmp < pix_thresh)
+			{
+				image.at<unsigned char>(y, x) = 255;
+			}*/
+		}//x
+		//getchar();
+		//cout << endl;
+	}//y
