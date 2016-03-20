@@ -1,9 +1,12 @@
-﻿Build started 20.03.2016 18:41:54.
+﻿Build started 20.03.2016 21:59:20.
      1>Project "C:\Users\Caldor.HomeE.000\documents\visual studio 2013\Projects\ConsoleApplication1\ConsoleApplication1\ConsoleApplication1.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\CL.exe /c /I"C:\Program Files\opencv\build\x64\vc12\..\..\include\\" /I"C:\Program Files\opencv\build\x64\vc12\..\..\include\opencv" /I"C:\Program Files\opencv\build\x64\vc12\..\..\include\opencv2" /I"C:\Program Files\opencv\build\x64\vc12\..\..\include\opencv2\core" /I"C:\Program Files\opencv\build\x64\vc12\..\..\include\opencv2\highgui" /I"C:\Program Files\opencv\build\x64\vc12\..\..\include\opencv2\objdetect" /I"C:\Program Files\opencv\build\x64\vc12\..\..\include\opencv2\photo" /I"C:\Program Files\opencv\build\x64\vc12\..\..\include\opencv2\imgproc" /Zi /nologo /W3 /WX- /sdl /O2 /Oi /GL /D WIN32 /D NDEBUG /D _CONSOLE /D _LIB /D _UNICODE /D UNICODE /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Yu"stdafx.h" /Fp"x64\Release\ConsoleApplication1.pch" /Fo"x64\Release\\" /Fd"x64\Release\vc120.pdb" /Gd /TP /errorReport:prompt ConsoleApplication1_1.cpp
          ConsoleApplication1_1.cpp
-     1>ConsoleApplication1_1.cpp(94): warning C4101: 'c_input' : unreferenced local variable
+     1>ConsoleApplication1_1.cpp(100): warning C4244: 'initializing' : conversion from '__int64' to 'unsigned long', possible loss of data
+     1>ConsoleApplication1_1.cpp(316): warning C4244: 'initializing' : conversion from '__int64' to 'unsigned long', possible loss of data
+     1>ConsoleApplication1_1.cpp(88): warning C4101: 'now' : unreferenced local variable
+     1>ConsoleApplication1_1.cpp(122): warning C4101: 'c_input' : unreferenced local variable
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Caldor.HomeE.000\documents\visual studio 2013\Projects\ConsoleApplication1\x64\Release\ConsoleApplication1.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:"C:\Program Files\opencv\build\x64\vc12\lib" opencv_world310.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\Caldor.HomeE.000\documents\visual studio 2013\Projects\ConsoleApplication1\x64\Release\ConsoleApplication1.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Caldor.HomeE.000\documents\visual studio 2013\Projects\ConsoleApplication1\x64\Release\ConsoleApplication1.lib" /MACHINE:X64 x64\Release\ConsoleApplication1_1.obj
          x64\Release\stdafx.obj
@@ -14,4 +17,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:04.74
+Time Elapsed 00:00:04.87

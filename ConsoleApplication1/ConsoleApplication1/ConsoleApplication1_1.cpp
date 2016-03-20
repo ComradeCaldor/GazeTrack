@@ -14,19 +14,21 @@
 #include <iostream>
 #include <string>
 #include <windows.h>
+#include <time.h>
+#include <chrono>
 
 using namespace cv;
 using namespace std;
 
 void get_input(int* sum_shut, int* sum_open, short* ishow_screen, short* iexit, short* x_crop, short* width, short* y_crop, short* height, short* time_shut_min);
 
-int sum(cv::Mat image, short pix_thresh)
+int sum(cv::Mat image, short pix_thresh, short sum_step)
 {
 	int sum(0);
-	for (int y(0); y < image.rows; y += 4)
+	for (int y(0); y < image.rows; y += sum_step)
 	{
 
-		for (int x(0); x < 3 * image.cols; x += 4)
+		for (int x(0); x < 3 * image.cols; x += sum_step)
 		{
 			int tmp = image.at<unsigned char>(y, x);
 			if (tmp < pix_thresh)
@@ -40,6 +42,11 @@ int sum(cv::Mat image, short pix_thresh)
 	//getchar();
 	return sum;
 }
+/*
+void draw_cross(cv::Mat image)
+{
+
+}*/
 
 /*
 Mat thresh(cv::Mat image, short pix_thresh)
@@ -73,6 +80,27 @@ int _tmain(int argc, _TCHAR* argv[])
 		y_crop = 126,
 		height = 200;
 
+	//---time----
+	
+		string time_output;
+		int blink_no = 0;
+		time_t timer;
+		time_t now;
+		struct tm y2k = { 0 };
+		double seconds;
+
+		y2k.tm_hour = 0;   y2k.tm_min = 0; y2k.tm_sec = 0;
+		y2k.tm_year = 100; y2k.tm_mon = 0; y2k.tm_mday = 1;
+
+		time(&timer);  /* get current time; same as: timer = time(NULL)  */
+
+		seconds = difftime(timer, mktime(&y2k));
+
+		printf("%.f seconds since January 1, 2000 in the current timezone\n", seconds);
+		unsigned long  start = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count(); //chrono::milliseconds
+		cout << start <<endl;
+	
+
 	printf(" Controls: \n   s/o                = shut/open \n   c                  = camera \n   up/down/left/right = center crop \n   num 4/8/6/2        = width/heght \n   z                  = console \n   num 7/9            = threshold -/+ \n   num 1/3            = delay -/+ \n   ESC                = Adios! \n\n");
 
 	cv::VideoCapture stream1(index_camera);//CV_CAP_ANY);   //0 is the id of video device.0 if you have only one camera.
@@ -98,6 +126,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	int sum_shut = 0;
 	int sum_open = 0;
 	short time_shut = 0;
+	short sum_step = 4;
 
 	bool bSuccess = false;
 	Mat frame, frame1;
@@ -106,6 +135,12 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	while (1)
 	{
+		/*
+		time(&now);  // get current time; same as: timer = time(NULL)  
+		seconds = difftime(now, timer);
+		printf("%.f seconds since January 1, 2000 in the current timezone\n", seconds);
+		*/
+
 		bSuccess = stream1.read(frame);
 		/*
 		if (!bSuccess) //if not success, break loop
@@ -116,7 +151,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		}*/
 
 		//cout << c_input << endl;
-		//cout << k << endl;
+		if ( k != -1 )
+			cout << k << endl;
 
 		//frame = thresh(frame(myROI), pix_thresh);
 		// добавочная величина 
@@ -124,7 +160,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 		//cvAddS(frame, cvScalar(add), frame);
 		//threshold(frame, frame, pix_thresh, 255, 4);//4
-		summa = sum(frame(myROI), pix_thresh);
+		summa = sum(frame(myROI), pix_thresh, sum_step);
 		//cout << "SUM = " << sum(frame(myROI)) << endl;
 
 		//c_input = cvWaitKey(33);
@@ -247,6 +283,19 @@ int _tmain(int argc, _TCHAR* argv[])
 					cout << "Time_shut_min = " << time_shut_min << endl;
 		}
 			break;
+		case 113://q
+			{
+				if (sum_step > 1)
+					sum_step--;
+				cout << "Sum_step = " << sum_step << endl;
+			}
+				break;
+		case 119://w
+			{
+				sum_step++;
+				cout << "Sum_step = " << sum_step << endl;
+			}
+				break;
 		default:
 			break;
 		}//switch(k)
@@ -261,8 +310,23 @@ int _tmain(int argc, _TCHAR* argv[])
 				keybd_event(VK_SPACE, 0, KEYEVENTF_KEYUP, 0);
 				cout << " SPACE " << endl;
 			}
+
+			if (time_shut == 1)
+			{
+				unsigned long now = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+				cout << "time_ms[" << blink_no << "] = " << now - start << ";" << endl;
+			}
 		}
-		else time_shut = 0;
+		else
+		{
+			//cout << time_shut << endl;
+			if (time_shut > 0)
+			{
+				cout << "time_dura[" << blink_no << "] = " << time_shut << ";" << endl;
+				blink_no++;
+			}
+			time_shut = 0;
+		}
 
 		//cout << "ss = " << sum_shut << "\t" << " so = " << sum_open << endl;
 		//if (iexit == 1) break;
