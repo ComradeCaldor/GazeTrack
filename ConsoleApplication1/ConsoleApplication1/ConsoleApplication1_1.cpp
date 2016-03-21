@@ -117,6 +117,19 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	stream1.set(CV_CAP_PROP_AUTO_EXPOSURE, 0);
 
+	cv::VideoWriter output_cap("123.mov",
+		CV_FOURCC('m', 'p', '4', 'v'),
+		30,
+		cv::Size(stream1.get(CV_CAP_PROP_FRAME_WIDTH),
+		stream1.get(CV_CAP_PROP_FRAME_HEIGHT)));
+
+	if (!output_cap.isOpened())
+	{
+		std::cout << "!!! Output video could not be opened" << std::endl;
+		getchar();
+		return 0;
+	}
+
 	int frame_no = 0;
 	double fps = -1;
 	char c_input;
@@ -125,6 +138,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	int summa = 0;
 	int sum_shut = 0;
 	int sum_open = 0;
+	short brecord = 0;
 	short time_shut = 0;
 	short sum_step = 4;
 
@@ -142,6 +156,13 @@ int _tmain(int argc, _TCHAR* argv[])
 		*/
 
 		bSuccess = stream1.read(frame);
+
+		if (brecord == 1)
+		{
+			cout << "write" << endl;
+			output_cap.write(frame);
+		}
+		//output_cap << frame;
 		/*
 		if (!bSuccess) //if not success, break loop
 		{
@@ -284,12 +305,22 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 			break;
 		case 113://q
-			{
-				if (sum_step > 1)
-					sum_step--;
-				cout << "Sum_step = " << sum_step << endl;
-			}
-				break;
+		{
+					 if (sum_step > 1)
+						 sum_step--;
+					 cout << "Sum_step = " << sum_step << endl;
+		}
+			break;
+		case 114://r
+		{
+					if (brecord == 0)
+					{
+						// Setup output video
+						brecord = 1;
+						cout << "Record started " << endl;
+					}
+		}
+			break;
 		case 119://w
 			{
 				sum_step++;
@@ -366,6 +397,9 @@ int _tmain(int argc, _TCHAR* argv[])
 			break;
 		}  //switch (ishow_screen)
 	}  //while(1)
+
+	output_cap.release();
+
 	return 0;
 }
 
