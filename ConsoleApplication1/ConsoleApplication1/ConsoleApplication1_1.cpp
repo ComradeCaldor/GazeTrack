@@ -85,9 +85,12 @@ int _tmain(int argc, _TCHAR* argv[])
 		string time_output;
 		int blink_no = 0;
 		time_t timer;
+		unsigned long time_now = 0, time_last, time_difference;
 		time_t now;
 		struct tm y2k = { 0 };
 		double seconds;
+		short out_fps = 30;
+		double ms_on_frame = 100 / out_fps;
 
 		y2k.tm_hour = 0;   y2k.tm_min = 0; y2k.tm_sec = 0;
 		y2k.tm_year = 100; y2k.tm_mon = 0; y2k.tm_mday = 1;
@@ -117,6 +120,19 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	stream1.set(CV_CAP_PROP_AUTO_EXPOSURE, 0);
 
+	cv::VideoWriter output_cap("123.mov",
+		CV_FOURCC('m', 'p', '4', 'v'),
+		out_fps,
+		cv::Size(stream1.get(CV_CAP_PROP_FRAME_WIDTH),
+		stream1.get(CV_CAP_PROP_FRAME_HEIGHT)));
+
+	if (!output_cap.isOpened())
+	{
+		std::cout << "!!! Output video could not be opened" << std::endl;
+		getchar();
+		return 0;
+	}
+
 	int frame_no = 0;
 	double fps = -1;
 	char c_input;
@@ -125,8 +141,9 @@ int _tmain(int argc, _TCHAR* argv[])
 	int summa = 0;
 	int sum_shut = 0;
 	int sum_open = 0;
+	short brecord = 0;
 	short time_shut = 0;
-	short sum_step = 4;
+	short sum_step = 1;
 
 	bool bSuccess = false;
 	Mat frame, frame1;
@@ -140,8 +157,44 @@ int _tmain(int argc, _TCHAR* argv[])
 		seconds = difftime(now, timer);
 		printf("%.f seconds since January 1, 2000 in the current timezone\n", seconds);
 		*/
-
+		time_last = time_now;
 		bSuccess = stream1.read(frame);
+		time_now = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+
+		cout << "time_last: " << time_now - time_last << endl;
+
+		if (brecord == 1)
+		{
+			now = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+			time_difference = now - time_last;
+			//cout << "write" << endl;
+			cout << "time_last: " << time_last << endl;
+			cout << "now: " << now << endl;
+			cout << "time_difference: " << time_difference/10 << endl << endl;
+			cout << "s/frame: " << ms_on_frame << endl;
+
+			while (now > time_last)
+			{
+				//cout << "now: " << now - time_last << endl;
+				now = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+				output_cap.write(frame);
+				//cout << "now: " << now - chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() + ms_on_frame * 10 << endl;
+				cout << "now: " << now - chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() << endl;
+				time_last += now - chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count() + ms_on_frame * 10;
+			}
+/*    vector<int> compression_params;
+    compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+    compression_params.push_back(9);
+
+    try {
+        imwrite("alpha.png", mat, compression_params);
+    }
+    catch (runtime_error& ex) {
+        fprintf(stderr, "Exception converting image to PNG format: %s\n", ex.what());
+        return 1;
+    }*/
+		}
+		//output_cap << frame;
 		/*
 		if (!bSuccess) //if not success, break loop
 		{
@@ -284,12 +337,22 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 			break;
 		case 113://q
-			{
-				if (sum_step > 1)
-					sum_step--;
-				cout << "Sum_step = " << sum_step << endl;
-			}
-				break;
+		{
+					 if (sum_step > 1)
+						 sum_step--;
+					 cout << "Sum_step = " << sum_step << endl;
+		}
+			break;
+		case 114://r
+		{
+					if (brecord == 0)
+					{
+						// Setup output video
+						brecord = 1;
+						cout << "Record started " << endl;
+					}
+		}
+			break;
 		case 119://w
 			{
 				sum_step++;
@@ -366,6 +429,9 @@ int _tmain(int argc, _TCHAR* argv[])
 			break;
 		}  //switch (ishow_screen)
 	}  //while(1)
+
+	output_cap.release();
+
 	return 0;
 }
 
